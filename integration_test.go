@@ -1,21 +1,22 @@
 package gexto_test
 
 import (
-	"testing"
-	"os/exec"
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"testing"
 
-	"github.com/stretchr/testify/require"
-	"github.com/nerd2/gexto"
 	"math/rand"
+
+	"github.com/euskadi31/gexto"
+	"github.com/stretchr/testify/require"
 )
 
 type TestFs struct {
 	devFile string
 	mntPath string
-	t *testing.T
+	t       *testing.T
 }
 
 func NewTestFs(t *testing.T, sizeMb int, fsType string) *TestFs {
@@ -29,7 +30,7 @@ func NewTestFs(t *testing.T, sizeMb int, fsType string) *TestFs {
 	err = f.Close()
 	require.Nil(t, err)
 
-	err = exec.Command("mkfs." + fsType, f.Name()).Run()
+	err = exec.Command("mkfs."+fsType, f.Name()).Run()
 	require.Nil(t, err)
 
 	tfs := &TestFs{f.Name(), "", t}
@@ -73,16 +74,16 @@ func (tfs *TestFs) Close() {
 }
 
 func (tfs *TestFs) WriteSmallFile(path string, file string, b []byte) {
-	err := os.MkdirAll(tfs.mntPath + path, 0777)
+	err := os.MkdirAll(tfs.mntPath+path, 0777)
 	require.Nil(tfs.t, err)
-	err = ioutil.WriteFile(tfs.mntPath + path + "/" + file, b, 0777)
+	err = ioutil.WriteFile(tfs.mntPath+path+"/"+file, b, 0777)
 	require.Nil(tfs.t, err)
 }
 
 func (tfs *TestFs) WriteLargeFile(path string, file string, size int) *os.File {
 	largefile, _ := ioutil.TempFile("", "gexto")
 	for size > 0 {
-		dataLen := 512*1024
+		dataLen := 512 * 1024
 		if dataLen > size {
 			dataLen = size
 		}
@@ -95,9 +96,9 @@ func (tfs *TestFs) WriteLargeFile(path string, file string, size int) *os.File {
 	}
 	err := largefile.Close()
 	require.Nil(tfs.t, err)
-	err = os.MkdirAll(tfs.mntPath + path, 0777)
+	err = os.MkdirAll(tfs.mntPath+path, 0777)
 	require.Nil(tfs.t, err)
-	err = exec.Command("cp", largefile.Name(), tfs.mntPath + path + file).Run()
+	err = exec.Command("cp", largefile.Name(), tfs.mntPath+path+file).Run()
 	require.Nil(tfs.t, err)
 	return largefile
 }
@@ -105,7 +106,7 @@ func (tfs *TestFs) WriteLargeFile(path string, file string, size int) *os.File {
 func doTestRead(t *testing.T, fsType string) {
 	tfs := NewTestFs(t, 1100, fsType)
 	tfs.Mount()
-	defer func(){tfs.Close()}()
+	defer func() { tfs.Close() }()
 
 	text := []byte("hello world")
 	tfs.WriteSmallFile("/", "smallfile", text)
@@ -162,7 +163,7 @@ func TestIntegrationWrite(t *testing.T) {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	tfs := NewTestFs(t, 100, "ext4")
-	defer func(){tfs.Close()}()
+	defer func() { tfs.Close() }()
 
 	fs, err := gexto.NewFileSystem(tfs.devFile)
 	require.Nil(t, err)
@@ -194,10 +195,10 @@ func TestIntegrationWrite(t *testing.T) {
 	tfs.Mount()
 	stat1, err := os.Stat(tfs.mntPath + "/newtestdir")
 	require.Nil(t, err)
-	require.Equal(t, os.FileMode(0777), stat1.Mode() & 0777)
+	require.Equal(t, os.FileMode(0777), stat1.Mode()&0777)
 	stat2, err := os.Stat(tfs.mntPath + "/newtestdir/newsubdir")
 	require.Nil(t, err)
-	require.Equal(t, os.FileMode(0777), stat2.Mode() & 0777)
+	require.Equal(t, os.FileMode(0777), stat2.Mode()&0777)
 	contents, err := ioutil.ReadFile(tfs.mntPath + "/newtestdir/newsubdir/file")
 	require.Nil(t, err)
 	require.Equal(t, testcontents, contents)
@@ -207,7 +208,7 @@ func randomName(len int, rand *rand.Rand) string {
 	len++
 	name := make([]byte, len)
 	for i := 0; i < len; i++ {
-		name[i] = byte('a' + rand.Intn('z'-'a') + rand.Intn(1) * ('A'-'a'))
+		name[i] = byte('a' + rand.Intn('z'-'a') + rand.Intn(1)*('A'-'a'))
 	}
 	return string(name)
 }
@@ -219,9 +220,9 @@ func recursiveFillDisk(t *testing.T, fs gexto.FileSystem, path string, depth int
 	nSubDirs := 3 + rand.Intn(2)
 	for i := 0; i < nSubDirs; i++ {
 		name := randomName(12+i, rand)
-		err := fs.Mkdir(path + "/" + string(name), 0777)
+		err := fs.Mkdir(path+"/"+string(name), 0777)
 		require.Nil(t, err)
-		recursiveFillDisk(t, fs, path + "/" + string(name), depth-1, rand)
+		recursiveFillDisk(t, fs, path+"/"+string(name), depth-1, rand)
 	}
 	nFiles := 3 + rand.Intn(4)
 	for i := 0; i < nFiles; i++ {
